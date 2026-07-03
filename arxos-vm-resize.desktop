@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ARXOS VM Auto-Resize
+Comment=Detects the hypervisor and starts the matching display auto-resize agent
+Exec=/usr/local/bin/arxos-vm-resize
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+Terminal=false
+OnlyShowIn=XFCE;
