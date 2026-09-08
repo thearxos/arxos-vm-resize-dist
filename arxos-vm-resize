@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+ARXOS_VERSION="0.0.1"   # ARXOS: every tool pinned to 0.0.1
+case "${1:-}" in --version|-V) echo "arxos-vm-resize ${ARXOS_VERSION} (ARXOS)"; exit 0 ;; esac
+# arxos-vm-resize - start the correct display auto-resize / guest agent for the
+# detected hypervisor so the ARXOS desktop always fits the client window.
+# When a guest agent is present it owns resizing; the RandR fallback only runs
+# on bare metal / unknown so it never fights an active agent.
+
+case "$(systemd-detect-virt 2>/dev/null)" in
+  kvm|qemu)
+    if command -v spice-vdagent >/dev/null 2>&1 && ! pgrep -x spice-vdagent >/dev/null 2>&1; then
+      spice-vdagent >/dev/null 2>&1 &
+    fi
+    ;;
+  oracle|virtualbox)
+    if command -v VBoxClient >/dev/null 2>&1; then
+      VBoxClient --vmsvga      >/dev/null 2>&1 &
+      VBoxClient --clipboard   >/dev/null 2>&1 &
+      VBoxClient --draganddrop >/dev/null 2>&1 &
+      VBoxClient --seamless    >/dev/null 2>&1 &
+    fi
+    ;;
+  vmware)
+    command -v vmware-user-suid-wrapper >/dev/null 2>&1 && vmware-user-suid-wrapper >/dev/null 2>&1 &
+    command -v vmtoolsd              >/dev/null 2>&1 && vmtoolsd -n vmusr           >/dev/null 2>&1 &
+    ;;
+  *)
+    # bare metal / unknown - no guest agent, so best-effort use the preferred mode
+    (
+      sleep 4
+      out=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
+      [ -n "$out" ] && xrandr --output "$out" --auto >/dev/null 2>&1
+    ) &
+    ;;
+esac
+
+exit 0
